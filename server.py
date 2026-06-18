@@ -31,6 +31,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from bigquery_agent.agent import create_bigquery_agent
+from bigquery_agent.sources import list_sources
 
 app = FastAPI(title="BigQuery SQL Agent")
 
@@ -45,6 +46,12 @@ def _extract_token(request: Request) -> str:
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
     return auth[7:]
+
+
+@app.get("/api/sources")
+async def get_sources():
+    """Return the catalog of supported log sources with schema metadata."""
+    return {"sources": list_sources()}
 
 
 @app.get("/api/projects")
@@ -105,6 +112,7 @@ async def query(request: Request):
     user_message = body.get("message", "").strip()
     project_id = body.get("project_id")
     dataset = body.get("dataset")  # optional
+    source_key = body.get("source_key")  # optional — selects domain context
     session_id = body.get("session_id")
 
     if not user_message:
@@ -112,7 +120,7 @@ async def query(request: Request):
     if not project_id:
         return JSONResponse({"error": "No project_id specified"}, status_code=400)
 
-    # Get or create runner + session for this project context
+    # Get or create runner + session for this project + source context
     if session_id and session_id in active_runners:
         entry = active_runners[session_id]
         runner = entry["runner"]
@@ -122,6 +130,7 @@ async def query(request: Request):
             access_token=token,
             project_id=project_id,
             default_dataset=dataset,
+            source_key=source_key,
         )
         runner = Runner(
             agent=agent,
@@ -137,6 +146,7 @@ async def query(request: Request):
             "runner": runner,
             "session": session,
             "project_id": project_id,
+            "source_key": source_key,
         }
 
     content = types.Content(

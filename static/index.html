@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BigQuery SQL Agent — GlomarGadaffi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #0f1419;
+  --bg-tertiary: #151b23;
+  --bg-elevated: #1a2028;
+  --bg-surface: #1e2530;
+  --border: #1e2733;
+  --border-active: #2d3a47;
+  --border-hover: #3a4a5c;
+  --text-primary: #d4dae3;
+  --text-secondary: #6b7d93;
+  --text-muted: #3d4f5f;
+  --accent: #39bae6;
+  --accent-dim: #1a6e9c;
+  --accent-glow: rgba(57, 186, 230, 0.12);
+  --accent-hover: #4dc8f0;
+  --green: #7fd962;
+  --green-dim: rgba(127, 217, 98, 0.12);
+  --orange: #ff9940;
+  --orange-dim: rgba(255, 153, 64, 0.1);
+  --red: #f07178;
+  --red-dim: rgba(240, 113, 120, 0.1);
+  --purple: #d2a6ff;
+  --yellow: #ffb454;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* ─── Screen management ─── */
+.screen { display: none; height: 100dvh; }
+.screen.active { display: flex; }
+
+/* ─── LOGIN SCREEN ─── */
+.login-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 40px;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(57, 186, 230, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 80%, rgba(127, 217, 98, 0.03) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.login-logo {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  border: 1px solid rgba(57, 186, 230, 0.15);
+  border-radius: 20px;
+  font-size: 32px;
+  animation: logoFloat 4s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.login-brand h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+
+.login-brand p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  max-width: 360px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 32px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-active);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.login-btn svg { width: 20px; height: 20px; }
+
+.login-error {
+  color: var(--red);
+  font-size: 13px;
+  max-width: 400px;
+  text-align: center;
+  display: none;
+}
+
+.login-footer {
+  position: absolute;
+  bottom: 24px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── CONFIG SCREEN ─── */
+.config-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.config-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.config-card h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.config-user img { width: 28px; height: 28px; border-radius: 50%; }
+.config-user .name { color: var(--text-primary); font-weight: 500; }
+.config-user .email { color: var(--text-secondary); margin-left: auto; font-size: 12px; }
+
+.config-field label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.config-field select,
+.config-field input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.config-field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7d93' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.config-field select:focus,
+.config-field input:focus { border-color: var(--accent-dim); }
+.config-field select option { background: var(--bg-secondary); color: var(--text-primary); }
+
+.config-field .hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.config-field .source-desc {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: none;
+  line-height: 1.5;
+}
+
+.config-field .source-desc.visible { display: block; }
+
+.config-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+.config-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-primary {
+  flex: 1;
+  padding: 10px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary:hover { border-color: var(--border-active); color: var(--text-primary); }
+
+.config-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.config-loading .spinner-inline {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-active);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── CHAT SCREEN ─── */
+.chat-screen {
+  flex-direction: column;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Header */
+.header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-left h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: statusPulse 3s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.header-meta {
+  display: flex;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.header-meta span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-meta .source-tag {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid rgba(57, 186, 230, 0.2);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  padding: 5px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.header-btn:hover { border-color: var(--border-active); color: var(--text-primary); }
+
+.header-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar { width: 5px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+
+.message {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  animation: fadeIn 0.2s ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-user {
+  align-self: flex-end;
+  background: var(--accent-dim);
+  border: 1px solid rgba(57, 186, 230, 0.2);
+  color: var(--text-primary);
+  border-bottom-right-radius: 2px;
+}
+
+.message-agent {
+  align-self: flex-start;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 2px;
+}
+
+.message-agent .msg-content {
+  font-family: 'DM Sans', sans-serif;
+  white-space: pre-wrap;
+}
+
+.message-agent .msg-content code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-primary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.message-agent .msg-content pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.message-agent .msg-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.message-agent .msg-content table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12px;
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+
+.message-agent .msg-content th,
+.message-agent .msg-content td {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.message-agent .msg-content th {
+  background: var(--bg-primary);
+  font-weight: 600;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tool-indicator {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--orange);
+  background: var(--orange-dim);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 153, 64, 0.15);
+  animation: fadeIn 0.2s ease;
+}
+
+.stats-bar {
+  align-self: flex-start;
+  padding: 3px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  animation: fadeIn 0.2s ease;
+}
+
+.typing-indicator {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  border-bottom-left-radius: 2px;
+  animation: fadeIn 0.2s ease;
+}
+
+.typing-indicator span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: bounce 1.4s ease-in-out infinite;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Welcome */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  padding: 40px 20px;
+  gap: 16px;
+}
+
+.welcome-icon {
+  font-size: 28px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-glow);
+  border: 1px solid rgba(57, 186, 230, 0.15);
+  border-radius: 14px;
+}
+
+.welcome h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.welcome p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  max-width: 480px;
+}
+
+.welcome .source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--accent-glow);
+  border: 1px solid rgba(57, 186, 230, 0.2);
+  border-radius: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+  max-width: 660px;
+}
+
+.suggestion {
+  padding: 7px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.suggestion:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+/* Input area */
+.input-area {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.input-row textarea {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  min-height: 42px;
+  max-height: 150px;
+  transition: border-color 0.15s ease;
+}
+
+.input-row textarea::placeholder { color: var(--text-muted); }
+.input-row textarea:focus { border-color: var(--accent-dim); }
+
+.send-btn {
+  width: 42px;
+  height: 42px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: var(--bg-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: scale(1.03); }
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.send-btn svg { width: 18px; height: 18px; }
+
+.message-error {
+  align-self: flex-start;
+  background: var(--red-dim);
+  border: 1px solid rgba(240, 113, 120, 0.2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--red);
+  font-size: 13px;
+  animation: fadeIn 0.2s ease;
+}
+
+@media (max-width: 640px) {
+  .message { max-width: 92%; }
+  .config-card { margin: 0 8px; padding: 20px 16px; }
+  .header-meta { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SCREEN 1: LOGIN ═══ -->
+<div class="screen login-screen active" id="loginScreen">
+  <div class="login-brand">
+    <div class="login-logo">⬡</div>
+    <h1>BIGQUERY SQL AGENT</h1>
+    <p>Sign in with your Google account to query GlomarGadaffi sensor data in BigQuery.</p>
+  </div>
+  <button class="login-btn" id="loginBtn" onclick="startGoogleLogin()">
+    <svg viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+    Sign in with Google
+  </button>
+  <div class="login-error" id="loginError"></div>
+  <div class="login-footer">local app · credentials never leave this machine</div>
+</div>
+
+<!-- ═══ SCREEN 2: PROJECT + SOURCE CONFIG ═══ -->
+<div class="screen config-screen" id="configScreen">
+  <div class="config-card">
+    <h2>▸ CONFIGURE SESSION</h2>
+
+    <div class="config-user" id="configUser"></div>
+
+    <div class="config-field">
+      <label>Google Cloud Project</label>
+      <select id="projectSelect" onchange="onProjectChange()">
+        <option value="">Loading projects…</option>
+      </select>
+    </div>
+
+    <div class="config-field">
+      <label>Default Dataset <span style="color:var(--text-muted)">(optional)</span></label>
+      <select id="datasetSelect">
+        <option value="">— select project first —</option>
+      </select>
+      <div class="hint">Agent can discover datasets on its own if you skip this.</div>
+    </div>
+
+    <hr class="config-divider">
+
+    <div class="config-field">
+      <label>Log Source <span style="color:var(--text-muted)">(optional — loads domain context)</span></label>
+      <select id="sourceSelect" onchange="onSourceChange()">
+        <option value="">— all sources / generic mode —</option>
+      </select>
+      <div class="source-desc" id="sourceDesc"></div>
+    </div>
+
+    <div class="config-loading" id="configLoading" style="display:none">
+      <span class="spinner-inline"></span> Loading…
+    </div>
+
+    <div class="config-actions">
+      <button class="btn-secondary" onclick="signOut()">Sign Out</button>
+      <button class="btn-primary" id="startChatBtn" onclick="startChat()" disabled>Start Querying</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN 3: CHAT ═══ -->
+<div class="screen chat-screen" id="chatScreen">
+  <div class="header">
+    <div class="header-left">
+      <div class="status-dot"></div>
+      <h1>BIGQUERY AGENT</h1>
+      <div class="header-meta">
+        <span id="metaProject"></span>
+        <span id="metaDataset"></span>
+        <span class="source-tag" id="metaSource" style="display:none"></span>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" onclick="newSession()">NEW SESSION</button>
+      <button class="header-btn" onclick="changeProject()">RECONFIGURE</button>
+      <img class="header-user-avatar" id="chatAvatar" src="" alt="">
+    </div>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">⬡</div>
+      <h2>Query your data with natural language</h2>
+      <p>Ask questions in plain English — the agent writes and executes SQL for you.</p>
+      <div class="suggestions" id="welcomeSuggestions"></div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="input" rows="1" placeholder="Ask about your sensor data…"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+/* ═══════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════ */
+let accessToken = null;
+let sessionId = null;
+let isStreaming = false;
+let userProfile = null;
+let selectedProject = null;
+let selectedDataset = null;
+let selectedSourceKey = null;
+let sourceCatalog = [];   // [{key, display_name, description, example_questions}, ...]
+
+// ─────────────────────────────────────────────
+// SET YOUR OAUTH CLIENT ID
+// Create at: https://console.cloud.google.com/apis/credentials
+// Type: Web application
+// Authorized JavaScript origins: http://localhost:8000
+// ─────────────────────────────────────────────
+const CLIENT_ID = '__YOUR_OAUTH_CLIENT_ID__';
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/bigquery.readonly',
+  'https://www.googleapis.com/auth/cloud-platform.read-only',
+  'openid', 'profile', 'email',
+].join(' ');
+
+const DEFAULT_SUGGESTIONS = [
+  'What datasets are available?',
+  'Show me all tables and their row counts',
+  'Show a sample of 10 rows from the most active table',
+  'How many records ingested today across all tables?',
+];
+
+/* ═══════════════════════════════════════════════
+   SCREEN MANAGEMENT
+   ═══════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════
+   GOOGLE OAUTH
+   ═══════════════════════════════════════════════ */
+let tokenClient = null;
+
+function initTokenClient() {
+  if (typeof google === 'undefined' || !google.accounts) {
+    setTimeout(initTokenClient, 200);
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: handleTokenResponse,
+  });
+}
+
+if (document.readyState === 'complete') {
+  initTokenClient();
+} else {
+  window.addEventListener('load', initTokenClient);
+}
+
+function startGoogleLogin() {
+  if (!tokenClient) {
+    showLoginError('Google Identity Services not loaded yet. Please wait.');
+    return;
+  }
+  tokenClient.requestAccessToken();
+}
+
+async function handleTokenResponse(resp) {
+  if (resp.error) {
+    showLoginError('Auth error: ' + resp.error);
+    return;
+  }
+  accessToken = resp.access_token;
+
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    userProfile = await r.json();
+  } catch {
+    userProfile = { name: 'User', email: '', picture: '' };
+  }
+
+  await loadSourceCatalog();
+  showConfigScreen();
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function signOut() {
+  if (accessToken && typeof google !== 'undefined') {
+    try { google.accounts.oauth2.revoke(accessToken); } catch {}
+  }
+  accessToken = null;
+  sessionId = null;
+  userProfile = null;
+  selectedProject = selectedDataset = selectedSourceKey = null;
+  showScreen('loginScreen');
+}
+
+/* ═══════════════════════════════════════════════
+   SOURCE CATALOG
+   ═══════════════════════════════════════════════ */
+async function loadSourceCatalog() {
+  try {
+    const r = await fetch('/api/sources');
+    const data = await r.json();
+    sourceCatalog = data.sources || [];
+  } catch {
+    sourceCatalog = [];
+  }
+}
+
+function populateSourceSelect() {
+  const sel = document.getElementById('sourceSelect');
+  sel.innerHTML = '<option value="">— all sources / generic mode —</option>';
+  for (const s of sourceCatalog) {
+    const opt = document.createElement('option');
+    opt.value = s.key;
+    opt.textContent = s.display_name;
+    sel.appendChild(opt);
+  }
+}
+
+function onSourceChange() {
+  const key = document.getElementById('sourceSelect').value;
+  const desc = document.getElementById('sourceDesc');
+  if (!key) {
+    desc.textContent = '';
+    desc.classList.remove('visible');
+    return;
+  }
+  const src = sourceCatalog.find(s => s.key === key);
+  if (src) {
+    desc.textContent = src.description;
+    desc.classList.add('visible');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   CONFIG SCREEN
+   ═══════════════════════════════════════════════ */
+async function showConfigScreen() {
+  showScreen('configScreen');
+  populateSourceSelect();
+
+  const userEl = document.getElementById('configUser');
+  userEl.innerHTML = `
+    ${userProfile.picture ? `<img src="${esc(userProfile.picture)}" alt="">` : ''}
+    <span class="name">${esc(userProfile.name || '')}</span>
+    <span class="email">${esc(userProfile.email || '')}</span>
+  `;
+
+  const projSelect = document.getElementById('projectSelect');
+  projSelect.innerHTML = '<option value="">Loading projects…</option>';
+  document.getElementById('startChatBtn').disabled = true;
+
+  try {
+    const r = await apiFetch('/api/projects');
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Failed to load projects');
+
+    projSelect.innerHTML = '<option value="">— choose a project —</option>';
+    for (const p of data.projects) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${p.id})`;
+      projSelect.appendChild(opt);
+    }
+  } catch (err) {
+    projSelect.innerHTML = `<option value="">Error: ${esc(err.message)}</option>`;
+  }
+}
+
+async function onProjectChange() {
+  const projId = document.getElementById('projectSelect').value;
+  const dsSelect = document.getElementById('datasetSelect');
+  const startBtn = document.getElementById('startChatBtn');
+  const loading = document.getElementById('configLoading');
+
+  if (!projId) {
+    dsSelect.innerHTML = '<option value="">— select project first —</option>';
+    startBtn.disabled = true;
+    return;
+  }
+
+  startBtn.disabled = false;
+  dsSelect.innerHTML = '<option value="">Loading datasets…</option>';
+  loading.style.display = 'block';
+
+  try {
+    const r = await apiFetch(`/api/datasets?project_id=${encodeURIComponent(projId)}`);
+    const data = await r.json();
+    dsSelect.innerHTML = '<option value="">— none (agent will discover) —</option>';
+    for (const ds of data.datasets || []) {
+      const opt = document.createElement('option');
+      opt.value = ds;
+      opt.textContent = ds;
+      dsSelect.appendChild(opt);
+    }
+  } catch {
+    dsSelect.innerHTML = '<option value="">— could not load datasets —</option>';
+  }
+
+  loading.style.display = 'none';
+}
+
+function startChat() {
+  selectedProject = document.getElementById('projectSelect').value;
+  selectedDataset = document.getElementById('datasetSelect').value || null;
+  selectedSourceKey = document.getElementById('sourceSelect').value || null;
+  sessionId = null;
+
+  // Header meta
+  document.getElementById('metaProject').textContent = 'proj: ' + selectedProject;
+  document.getElementById('metaDataset').textContent = selectedDataset ? 'ds: ' + selectedDataset : '';
+
+  const metaSrc = document.getElementById('metaSource');
+  if (selectedSourceKey) {
+    const src = sourceCatalog.find(s => s.key === selectedSourceKey);
+    metaSrc.textContent = src ? src.key : selectedSourceKey;
+    metaSrc.style.display = '';
+  } else {
+    metaSrc.style.display = 'none';
+  }
+
+  // Avatar
+  if (userProfile?.picture) {
+    document.getElementById('chatAvatar').src = userProfile.picture;
+  }
+
+  renderWelcome();
+  showScreen('chatScreen');
+  document.getElementById('input').focus();
+}
+
+function renderWelcome() {
+  let suggestions = DEFAULT_SUGGESTIONS;
+  let sourceLabel = '';
+  let sourceDesc = '';
+
+  if (selectedSourceKey) {
+    const src = sourceCatalog.find(s => s.key === selectedSourceKey);
+    if (src) {
+      suggestions = src.example_questions || DEFAULT_SUGGESTIONS;
+      sourceLabel = src.display_name;
+      sourceDesc = src.description;
+    }
+  }
+
+  const badgeHtml = sourceLabel
+    ? `<span class="source-badge">⬡ ${esc(sourceLabel)}</span>`
+    : '';
+
+  const descHtml = sourceDesc
+    ? `<p>${esc(sourceDesc)}</p>`
+    : `<p>Connected to <strong>${esc(selectedProject)}</strong>${selectedDataset ? ' · ' + esc(selectedDataset) : ''}. Ask anything about your sensor data.</p>`;
+
+  const suggestionsHtml = suggestions
+    .slice(0, 6)
+    .map(q => `<div class="suggestion" onclick="useSuggestion(this)">${esc(q)}</div>`)
+    .join('');
+
+  document.getElementById('messages').innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">⬡</div>
+      ${badgeHtml}
+      <h2>Query your data with natural language</h2>
+      ${descHtml}
+      <div class="suggestions">${suggestionsHtml}</div>
+    </div>
+  `;
+}
+
+function changeProject() {
+  sessionId = null;
+  showConfigScreen();
+}
+
+async function newSession() {
+  if (sessionId) {
+    try {
+      await apiFetch('/api/reset', {
+        method: 'POST',
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+    } catch {}
+  }
+  sessionId = null;
+  renderWelcome();
+  document.getElementById('input').focus();
+}
+
+/* ═══════════════════════════════════════════════
+   API HELPER
+   ═══════════════════════════════════════════════ */
+function apiFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = `Bearer ${accessToken}`;
+  if (opts.body && !opts.headers['Content-Type']) {
+    opts.headers['Content-Type'] = 'application/json';
+  }
+  return fetch(url, opts);
+}
+
+/* ═══════════════════════════════════════════════
+   CHAT ENGINE
+   ═══════════════════════════════════════════════ */
+const messagesEl = () => document.getElementById('messages');
+const inputEl = () => document.getElementById('input');
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = inputEl();
+  if (inp) inp.addEventListener('input', () => {
+    document.getElementById('sendBtn').disabled = !inp.value.trim() || isStreaming;
+  });
+});
+
+function useSuggestion(el) {
+  inputEl().value = el.textContent;
+  document.getElementById('sendBtn').disabled = false;
+  sendMessage();
+}
+
+function scrollToBottom() {
+  const m = messagesEl();
+  m.scrollTop = m.scrollHeight;
+}
+
+function addMessage(type, content) {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+  const div = document.createElement('div');
+  div.className = `message message-${type}`;
+  if (type === 'agent') {
+    div.innerHTML = `<div class="msg-content">${formatContent(content)}</div>`;
+  } else {
+    div.textContent = content;
+  }
+  messagesEl().appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function addToolIndicator(name) {
+  const div = document.createElement('div');
+  div.className = 'tool-indicator';
+  div.innerHTML = `<span style="font-size:10px">⚙</span> ${esc(name)}`;
+  messagesEl().appendChild(div);
+  scrollToBottom();
+}
+
+function addStats(duration, inTok, outTok) {
+  const div = document.createElement('div');
+  div.className = 'stats-bar';
+  div.textContent = `${duration}s · ${inTok} in / ${outTok} out`;
+  messagesEl().appendChild(div);
+  scrollToBottom();
+}
+
+function addTyping() {
+  const div = document.createElement('div');
+  div.className = 'typing-indicator';
+  div.id = 'typing';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  messagesEl().appendChild(div);
+  scrollToBottom();
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+function addError(msg) {
+  const div = document.createElement('div');
+  div.className = 'message-error';
+  div.textContent = msg;
+  messagesEl().appendChild(div);
+  scrollToBottom();
+}
+
+async function sendMessage() {
+  const text = inputEl().value.trim();
+  if (!text || isStreaming) return;
+
+  isStreaming = true;
+  document.getElementById('sendBtn').disabled = true;
+  inputEl().value = '';
+  inputEl().style.height = 'auto';
+
+  addMessage('user', text);
+  addTyping();
+
+  let agentDiv = null;
+  let agentText = '';
+
+  try {
+    const body = {
+      message: text,
+      project_id: selectedProject,
+      dataset: selectedDataset,
+      session_id: sessionId,
+    };
+    if (selectedSourceKey) body.source_key = selectedSourceKey;
+
+    const resp = await apiFetch('/api/query', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let data;
+        try { data = JSON.parse(line.slice(6)); } catch { continue; }
+
+        switch (data.type) {
+          case 'session':
+            sessionId = data.session_id;
+            break;
+          case 'text':
+            removeTyping();
+            if (!agentDiv) agentDiv = addMessage('agent', '');
+            agentText += data.content;
+            agentDiv.querySelector('.msg-content').innerHTML = formatContent(agentText);
+            scrollToBottom();
+            break;
+          case 'tool':
+            addToolIndicator(data.name);
+            break;
+          case 'error':
+            removeTyping();
+            addError(data.content);
+            break;
+          case 'done':
+            removeTyping();
+            addStats(data.duration, data.input_tokens, data.output_tokens);
+            break;
+        }
+      }
+    }
+  } catch (err) {
+    removeTyping();
+    addError('Connection error: ' + err.message);
+  }
+
+  isStreaming = false;
+  document.getElementById('sendBtn').disabled = !inputEl().value.trim();
+  inputEl().focus();
+}
+
+/* ═══════════════════════════════════════════════
+   FORMATTING
+   ═══════════════════════════════════════════════ */
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+
+function formatContent(text) {
+  let s = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  s = s.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = formatTables(s);
+  return s;
+}
+
+function formatTables(text) {
+  const lines = text.split('\n');
+  let result = [], tableRows = [], inTable = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      if (/^\|[\s\-:|]+\|$/.test(trimmed)) continue;
+      tableRows.push(trimmed);
+      inTable = true;
+    } else {
+      if (inTable && tableRows.length) {
+        result.push(buildTable(tableRows));
+        tableRows = [];
+        inTable = false;
+      }
+      result.push(line);
+    }
+  }
+  if (tableRows.length) result.push(buildTable(tableRows));
+  return result.join('\n');
+}
+
+function buildTable(rows) {
+  let html = '<table>';
+  rows.forEach((row, i) => {
+    const cells = row.split('|').filter(c => c.trim() !== '');
+    const tag = i === 0 ? 'th' : 'td';
+    html += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+  });
+  return html + '</table>';
+}
+</script>
+</body>
+</html>
