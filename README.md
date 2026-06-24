@@ -1,4 +1,4 @@
-# bandon-gossip
+# ask-the-logs
 
 talk to the logs. AI agent that queries BigQuery datasets via natural language. uses Google Agents Development Kit (ADK) with Gemini LLM to translate user queries into SQL, execute, and explain results.
 
@@ -8,17 +8,17 @@ extended to support the full GlomarGadaffi sensor ecosystem: every capture pipel
 
 | key | display name | origin repo | dataset |
 |---|---|---|---|
-| `mirkwood` | Mirkwood — All Sources (cross-channel) | wasatch-prospector | `mirkwood` |
-| `meshtastic` | Meshtastic Mesh | vandenberg-informant | `meshnarc` |
-| `scanner_rf` | BCD325P2 Scanner RF Hits | tysons-archivist / clarksburg-warden | `scanner` |
-| `p25_control` | P25 Control Channel | arlington-auditor | `p25_control` |
+| `mirkwood` | Mirkwood — All Sources (cross-channel) | deanon-demo | `mirkwood` |
+| `meshtastic` | Meshtastic Mesh | meshtap | `meshnarc` |
+| `scanner_rf` | BCD325P2 Scanner RF Hits | bcd325-splunk-addon / bcd325-dashboard | `scanner` |
+| `p25_control` | P25 Control Channel | p25-trunk-logger | `p25_control` |
 | `ble_scan` | BLE Device Sightings | mockingbird-scrivener | `ble_scan` |
-| `wifi_wardrive` | WiFi Wardriving | ashburn-drifter / groton-tinkerer | `wardrive` |
-| `wifi_attacks` | 802.11 Attack Alerts | mastic-scout | `wifi_attacks` |
-| `lora_sweep` | LoRa RF Sweep | ashburn-sentry | `lora_rf` |
-| `sip_voip` | SIP/VoIP Call Records | pocket-dial / ashburn-messenger | `sip_cdr` |
-| `lte_cellular` | LTE / Cellular | Rayhunter / LTESniffer via wasatch-prospector | `lte_sigint` |
-| `adsb` | ADS-B Aviation Transponders | clarksburg-steward | `adsb` |
+| `wifi_wardrive` | WiFi Wardriving | wigle-wardriver / rfparty | `wardrive` |
+| `wifi_attacks` | 802.11 Attack Alerts | deauth-detector | `wifi_attacks` |
+| `lora_sweep` | LoRa RF Sweep | lora-rf-toolkit | `lora_rf` |
+| `sip_voip` | SIP/VoIP Call Records | pocket-dial / pocket-dial-handset | `sip_cdr` |
+| `lte_cellular` | LTE / Cellular | Rayhunter / LTESniffer via deanon-demo | `lte_sigint` |
+| `adsb` | ADS-B Aviation Transponders | sentinel-node-demo | `adsb` |
 
 ## bigquery schema design
 
@@ -26,7 +26,7 @@ extended to support the full GlomarGadaffi sensor ecosystem: every capture pipel
 
 **tier 1 — native per-source tables**
 each pipeline writes to its own dataset in the format its tool emits:
-- `meshnarc.packets` — canonical schema in `vandenberg-informant/bq_schema.sql`
+- `meshnarc.packets` — canonical schema in `meshtap/bq_schema.sql`
 - `scanner.hits` — BCD325P2 GLG 13-field telemetry
 - `p25_control.events` — TSBK/TDULC control channel messages
 - `ble_scan.sightings` — NimBLE advertisement events (lawndale-courier NDJSON)
@@ -35,10 +35,10 @@ each pipeline writes to its own dataset in the format its tool emits:
 - `lora_rf.sweeps` — CAD hit + rx_ok/rx_fail parameter sweep events
 - `sip_cdr.calls` — SIP call detail records
 - `lte_sigint.lte_captures` / `lte_sigint.rayhunter_alerts` — LTE + IMSI detect
-- `adsb.transponders` — ADS-B DF17 transponder frames (clarksburg-steward: SYNTHETIC)
+- `adsb.transponders` — ADS-B DF17 transponder frames (sentinel-node-demo: SYNTHETIC)
 
 **tier 2 — mirkwood unified table**
-wasatch-prospector normalizes all sources into `mirkwood.emission_events` via Python adapter classes. use this table for cross-channel questions:
+deanon-demo normalizes all sources into `mirkwood.emission_events` via Python adapter classes. use this table for cross-channel questions:
 - `device_fingerprint` — stable SHA-256 identifier enabling JOIN across channel types
 - `channel_type` — `P25_TRUNK | EDACS | MESHTASTIC | BLE | WIFI | BT | SIP | LTE_SNIFFER | IMSI_CATCHER_DETECT | ADS_B`
 - `metadata` — JSON object, keys vary by `source_tool`
@@ -137,7 +137,7 @@ then open `http://localhost:8000`, set `CLIENT_ID` in `static/index.html` to you
 
 ## notes
 
-- `adsb` source data is entirely SYNTHETIC — clarksburg-steward generates scenario data for policy demonstration, not a real 1090 MHz receiver
-- `lte_cellular` Rayhunter captures in clarksburg-steward are also SYNTHETIC; real captures require physical Rayhunter hardware
+- `adsb` source data is entirely SYNTHETIC — sentinel-node-demo generates scenario data for policy demonstration, not a real 1090 MHz receiver
+- `lte_cellular` Rayhunter captures in sentinel-node-demo are also SYNTHETIC; real captures require physical Rayhunter hardware
 - query cost scales with data volume scanned; always include a time filter on partitioned tables (e.g. `WHERE rx_timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)`)
 - `metadata`, `tags`, `secondary_ids` in `mirkwood.emission_events` are JSON strings; use `JSON_VALUE(col, '$.key')` in BigQuery Standard SQL
